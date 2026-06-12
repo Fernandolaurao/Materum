@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orden de Producción · MATERUM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root{
+    --espresso:#2B2622; --taupe:#8C7B6B; --taupe-d:#736353;
+    --greige:#EDE9E3; --paper:#F4F1EC; --field:#FFFFFF;
+    --line:#D8D2C8; --line-soft:#E7E2D9; --ink:#2B2622; --muted:#938A7C;
+    --ok:#5B6B52; --warn:#9A6A4A;
+    --serif:'Cormorant Garamond',Georgia,serif;
+    --sans:'Inter',system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:var(--sans); color:var(--ink); background:var(--paper);
+    font-size:14px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  }
+  /* ---------- Toolbar ---------- */
+  .bar{
+    position:sticky; top:0; z-index:50; background:var(--espresso); color:#fff;
+    display:flex; align-items:center; gap:18px; padding:12px 22px;
+    box-shadow:0 1px 0 rgba(0,0,0,.15);
+  }
+  .bar .mark{font-family:var(--serif); font-weight:600; font-size:25px; letter-spacing:.14em; line-height:1}
+  .bar .sub{font-size:11px; color:#C9BFB1; letter-spacing:.16em; text-transform:uppercase; margin-top:2px}
+  .bar .spacer{flex:1}
+  .bar .acts{display:flex; gap:9px; flex-wrap:wrap}
+  button{font-family:var(--sans); cursor:pointer; border:none; border-radius:7px; font-size:12.5px; font-weight:500; padding:9px 15px; transition:.15s}
+  .btn-primary{background:var(--taupe); color:#fff}
+  .btn-primary:hover{background:#9a8773}
+  .btn-ghost{background:transparent; color:#E7DFD3; border:1px solid #5A5048}
+  .btn-ghost:hover{background:#3a342e}
+  /* ---------- Sheet ---------- */
+  .wrap{max-width:1000px; margin:26px auto 80px; padding:0 18px}
+  .sheet{background:var(--field); border:1px solid var(--line); border-radius:4px; overflow:hidden;
+         box-shadow:0 14px 40px -28px rgba(43,38,34,.5)}
+  .doc-head{padding:26px 30px 20px; border-bottom:3px solid var(--taupe); display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap}
+  .doc-head .brandcol{flex:0 0 auto}
+  .doc-head .mk{font-family:var(--serif); font-weight:600; font-size:38px; letter-spacing:.12em; line-height:.9}
+  .doc-head .mk-sub{font-size:10.5px; color:var(--taupe); letter-spacing:.22em; text-transform:uppercase; margin-top:6px}
+  .doc-head .titlecol{flex:1; text-align:center; min-width:220px}
+  .doc-head .dt{font-weight:600; font-size:17px; letter-spacing:.04em}
+  .doc-head .dt-sub{font-size:11px; color:var(--muted); margin-top:4px}
+  .opbox{flex:0 0 auto; text-align:center}
+  .opbox label{display:block; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:#fff; background:var(--taupe); padding:4px 10px; border-radius:4px 4px 0 0}
+  .opbox input{width:120px; text-align:center; font-weight:600; font-size:16px; color:var(--ink); border:1px solid var(--line); border-top:none; border-radius:0 0 4px 4px; padding:7px 4px; background:var(--greige)}
+  /* ---------- Sections ---------- */
+  .sec-h{background:var(--espresso); color:#fff; font-size:12px; font-weight:600; letter-spacing:.06em; padding:9px 30px; display:flex; align-items:center; gap:10px}
+  .sec-h .n{font-family:var(--serif); font-size:16px; color:var(--taupe); font-weight:600}
+  .sec-h .hint{margin-left:auto; font-weight:400; font-size:10.5px; color:#C9BFB1; letter-spacing:.04em; text-transform:none}
+  .sec-body{padding:18px 30px 24px}
+  /* ---------- Fields ---------- */
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px 30px}
+  .fld{display:flex; flex-direction:column; gap:4px}
+  .fld label{font-size:10.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:600}
+  input,select,textarea{font-family:var(--sans); font-size:13.5px; color:var(--ink); background:var(--field);
+    border:none; border-bottom:1px solid var(--line); padding:6px 2px; width:100%; transition:.15s}
+  input:focus,select,textarea:focus{outline:none; border-bottom-color:var(--taupe)}
+  select{border:1px solid var(--line); border-radius:6px; padding:6px 8px; background:var(--field)}
+  textarea{border:1px solid var(--line); border-radius:6px; resize:vertical; min-height:34px}
+  /* ---------- Tables ---------- */
+  .tbl-scroll{overflow-x:auto; margin-top:4px; border:1px solid var(--line-soft); border-radius:6px}
+  table{border-collapse:collapse; width:100%; min-width:680px}
+  thead th{background:var(--taupe); color:#fff; font-size:10px; font-weight:600; letter-spacing:.03em; text-transform:uppercase;
+    padding:8px 8px; text-align:left; vertical-align:middle}
+  tbody td{border-top:1px solid var(--line-soft); padding:3px 6px; vertical-align:middle}
+  tbody tr:nth-child(even){background:#FBFAF8}
+  td input,td textarea,td select{border:none; border-bottom:1px solid transparent; border-radius:0; padding:5px 4px; background:transparent}
+  td input:focus,td textarea:focus,td select:focus{border-bottom-color:var(--taupe); background:#fff}
+  td.num input{text-align:center}
+  td.money{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--ink); font-size:13px; padding-right:10px}
+  td.money input{text-align:right}
+  .rowtools{display:flex; gap:6px}
+  .ix{color:var(--muted); font-size:12px; text-align:center; width:30px}
+  .del{background:none; color:var(--muted); padding:4px 7px; border:1px solid var(--line); border-radius:5px; font-size:12px; line-height:1}
+  .del:hover{color:#fff; background:var(--warn); border-color:var(--warn)}
+  .addrow{margin-top:10px; background:var(--greige); color:var(--taupe-d); border:1px dashed var(--taupe); font-weight:600}
+  .addrow:hover{background:#e6e0d6}
+  /* ---------- Totals ---------- */
+  .tots{margin-top:14px; margin-left:auto; width:320px; max-width:100%}
+  .totrow{display:flex; justify-content:space-between; align-items:center; padding:7px 12px; font-size:13px}
+  .totrow.sub{border-bottom:1px solid var(--line-soft)}
+  .totrow.igv{color:var(--muted)}
+  .totrow.grand{background:var(--espresso); color:#fff; border-radius:6px; margin-top:6px; padding:11px 14px; font-weight:600; font-size:14px}
+  .totrow .v{font-variant-numeric:tabular-nums; font-weight:600}
+  /* ---------- QC ---------- */
+  .qc-opts{display:flex; gap:5px}
+  .qc-opts label{display:inline-flex; align-items:center; gap:3px; font-size:11px; color:var(--muted); cursor:pointer; text-transform:none; letter-spacing:0; font-weight:500}
+  .qc-opts input{width:auto}
+  /* ---------- Signatures ---------- */
+  .firmas{display:grid; grid-template-columns:repeat(3,1fr); gap:26px; margin-top:8px}
+  .firma{text-align:center}
+  .firma .line{border-top:1px solid var(--ink); margin:34px 8px 6px}
+  .firma .cap{font-size:11px; color:var(--muted)}
+  .doc-foot{padding:16px 30px 22px; text-align:center; color:var(--muted); font-size:10.5px; font-style:italic; border-top:1px solid var(--line-soft)}
+  .toast{position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--espresso); color:#fff;
+    padding:11px 20px; border-radius:8px; font-size:13px; opacity:0; pointer-events:none; transition:.25s; z-index:99}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  @media (max-width:680px){
+    .grid2{grid-template-columns:1fr}
+    .firmas{grid-template-columns:1fr; gap:14px}
+    .doc-head{flex-direction:column; align-items:stretch}
+    .doc-head .titlecol{text-align:left}
+    .bar{flex-wrap:wrap}
+  }
+  /* ---------- Print layout (oculto en pantalla) ---------- */
+  #printArea{position:fixed; left:-9999px; top:0; width:794px; background:#fff}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div>
+    <div class="mark">MATERUM</div>
+    <div class="sub">Orden de producción</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="acts">
+    <button class="btn-ghost" onclick="saveJSON()">Guardar borrador</button>
+    <button class="btn-ghost" onclick="document.getElementById('loadFile').click()">Cargar borrador</button>
+    <button class="btn-ghost" onclick="clearAll()">Limpiar</button>
+    <button class="btn-primary" id="pdfBtn" onclick="exportPDF()">Exportar PDF</button>
+  </div>
+  <input type="file" id="loadFile" accept="application/json" style="display:none" onchange="loadJSON(event)">
+</div>
+
+<div class="wrap">
+  <div class="sheet">
+
+    <!-- Encabezado -->
+    <div class="doc-head">
+      <div class="brandcol">
+        <div class="mk">MATERUM</div>
+        <div class="mk-sub">Mobiliario a medida</div>
+      </div>
+      <div class="titlecol">
+        <div class="dt">ORDEN DE PRODUCCIÓN Y FABRICACIÓN</div>
+        <div class="dt-sub">Documento interno de producción</div>
+      </div>
+      <div class="opbox">
+        <label>N° de orden</label>
+        <input id="f_op" value="OP-0001">
+      </div>
+    </div>
+
+    <!-- 1. Datos generales -->
+    <div class="sec-h"><span class="n">1</span> DATOS GENERALES</div>
+    <div class="sec-body">
+      <div class="grid2">
+        <div class="fld"><label>Fecha de emisión</label><input type="date" id="f_fecha"></div>
+        <div class="fld"><label>Cliente</label><input id="f_cliente" placeholder="Nombre del cliente"></div>
+        <div class="fld"><label>Cotización / Pedido vinculado</label><input id="f_cotiz" placeholder="N° 0000 Rev. 0"></div>
+        <div class="fld"><label>DNI / RUC</label><input id="f_dni"></div>
+        <div class="fld"><label>Asesor de venta</label><input id="f_asesor"></div>
+        <div class="fld"><label>Proyecto / Ambiente</label><input id="f_proyecto"></div>
+        <div class="fld"><label>Responsable de producción</label><input id="f_resp"></div>
+        <div class="fld"><label>Dirección de entrega</label><input id="f_direccion"></div>
+        <div class="fld"><label>Fecha inicio programada</label><input type="date" id="f_inicio"></div>
+        <div class="fld"><label>Fecha entrega comprometida</label><input type="date" id="f_entrega"></div>
+        <div class="fld"><label>Prioridad</label>
+          <select id="f_prioridad"><option>Normal</option><option>Urgente</option></select></div>
+        <div class="fld"><label>Estado general</label>
+          <select id="f_estado"><option>En cola</option><option>En producción</option><option>En control</option><option>Listo</option><option>Entregado</option><option>Observado</option></select></div>
+      </div>
+    </div>
+
+    <!-- 2. Muebles -->
+    <div class="sec-h"><span class="n">2</span> DETALLE DE MUEBLES A FABRICAR</div>
+    <div class="sec-body">
+      <div class="tbl-scroll">
+        <table id="tblMuebles">
+          <thead><tr>
+            <th style="width:30px">#</th><th>Código / SKU</th><th>Nombre y descripción</th><th style="width:110px">Línea</th>
+            <th style="width:55px">Cant.</th><th style="width:120px">Medidas An×Pr×Al (cm)</th><th>Acabado / Color</th>
+            <th>Materiales</th><th>Ref. plano/foto</th><th>Observaciones</th><th style="width:34px"></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <button class="addrow" onclick="addMueble()">+ Agregar mueble</button>
+    </div>
+
+    <!-- 3. Ficha técnica -->
+    <div class="sec-h"><span class="n">3</span> FICHA TÉCNICA DE FABRICACIÓN</div>
+    <div class="sec-body">
+      <div class="tbl-scroll">
+        <table id="tblFicha">
+          <thead><tr>
+            <th style="width:30px">#</th><th>Estructura / espesores</th><th>Tableros / enchapes</th><th>Acabado superficial</th>
+            <th>Tapizado (tela / espuma)</th><th>Herrajes (marca / modelo)</th><th>Sistema de armado</th><th>Tolerancias / notas QC</th><th style="width:34px"></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <button class="addrow" onclick="addFicha()">+ Agregar ficha</button>
+    </div>
+
+    <!-- 4. Despiece -->
+    <div class="sec-h"><span class="n">4</span> DESPIECE DE MATERIALES E INSUMOS <span class="hint">Sirve como requisición de compra · IGV 18%</span></div>
+    <div class="sec-body">
+      <div class="tbl-scroll">
+        <table id="tblBom">
+          <thead><tr>
+            <th>Material / Insumo</th><th>Especificación</th><th style="width:55px">Unid.</th>
+            <th style="width:75px">Cant./mueble</th><th style="width:70px">Cant. total</th><th>Proveedor</th>
+            <th style="width:105px">Estado</th><th style="width:95px">Costo unit. (S/)</th><th style="width:100px">Costo total (S/)</th><th style="width:34px"></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <button class="addrow" onclick="addBom()">+ Agregar material</button>
+      <div class="tots">
+        <div class="totrow sub"><span>Subtotal materiales</span><span class="v">S/ <span id="t_sub">0.00</span></span></div>
+        <div class="totrow igv"><span>IGV 18%</span><span class="v">S/ <span id="t_igv">0.00</span></span></div>
+        <div class="totrow grand"><span>Costo total de materiales</span><span class="v">S/ <span id="t_total">0.00</span></span></div>
+      </div>
+    </div>
+
+    <!-- 5. Seguimiento -->
+    <div class="sec-h"><span class="n">5</span> SEGUIMIENTO DE PRODUCCIÓN</div>
+    <div class="sec-body">
+      <div class="tbl-scroll">
+        <table id="tblSeg">
+          <thead><tr>
+            <th style="width:175px">Etapa</th><th>Responsable</th><th style="width:130px">Fecha programada</th>
+            <th style="width:120px">Fecha real</th><th style="width:125px">Estado</th><th>Observaciones</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 6. Control de calidad -->
+    <div class="sec-h"><span class="n">6</span> CONTROL DE CALIDAD</div>
+    <div class="sec-body">
+      <div class="tbl-scroll">
+        <table id="tblQc">
+          <thead><tr>
+            <th>Punto de inspección</th><th style="width:215px">Resultado</th><th>Observaciones</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="grid2" style="margin-top:16px">
+        <div class="fld"><label>Inspeccionado por / Fecha</label><input id="f_inspector"></div>
+        <div class="fld"><label>Resultado final</label>
+          <select id="f_resultado"><option value="">—</option><option>Aprobado</option><option>Observado</option><option>Rechazado</option></select></div>
+      </div>
+    </div>
+
+    <!-- 7. Entrega y firmas -->
+    <div class="sec-h"><span class="n">7</span> ENTREGA Y FIRMAS</div>
+    <div class="sec-body">
+      <div class="grid2">
+        <div class="fld"><label>Fecha de entrega real</label><input type="date" id="f_fentrega"></div>
+        <div class="fld"><label>Transportista / responsable</label><input id="f_transp"></div>
+        <div class="fld"><label>Recibido por</label><input id="f_recibido"></div>
+        <div class="fld"><label>DNI receptor</label><input id="f_dnirec"></div>
+      </div>
+      <div class="firmas">
+        <div class="firma"><div class="line"></div><div class="cap">Elaborado por</div></div>
+        <div class="firma"><div class="line"></div><div class="cap">Revisado por (Jefe Prod. / QC)</div></div>
+        <div class="firma"><div class="line"></div><div class="cap">Autorizado por</div></div>
+      </div>
+    </div>
+
+    <div class="doc-foot">MATERUM · FL Design Factory E.I.R.L. · Lima, Perú · Documento interno de producción — confidencial</div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const ETAPAS = ["Habilitado / corte","Armado de estructura","Acabado / laqueado","Tapizado","Ensamblaje y herrajes","Limpieza / embalaje"];
+const QC_PUNTOS = ["Medidas según plano","Acabado uniforme, sin defectos visibles","Herrajes operativos y alineados","Estabilidad y nivelación","Tapizado sin tensiones ni arrugas","Limpieza general","Embalaje y protección"];
+const LINEAS = ["","Studio","Colecciones","Singuli"];
+const EST_MAT = ["","En stock","Por comprar"];
+const EST_SEG = ["","Pendiente","En proceso","Completado","Observado"];
+let mIx=0, fIx=0, bIx=0;
+
+const $ = s => document.querySelector(s);
+const esc = s => (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const money = n => (isFinite(n)?n:0).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function opts(arr,sel=""){return arr.map(o=>`<option ${o===sel?'selected':''}>${o}</option>`).join('')}
+
+/* ---------- Muebles ---------- */
+function addMueble(d={}){
+  mIx++;
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td class="ix">${$('#tblMuebles tbody').children.length+1}</td>
+    <td><input value="${esc(d.sku)}"></td>
+    <td><input value="${esc(d.nombre)}"></td>
+    <td><select>${opts(LINEAS,d.linea||'')}</select></td>
+    <td class="num"><input value="${esc(d.cant)}"></td>
+    <td><input value="${esc(d.medidas)}"></td>
+    <td><input value="${esc(d.acabado)}"></td>
+    <td><input value="${esc(d.materiales)}"></td>
+    <td><input value="${esc(d.ref)}"></td>
+    <td><input value="${esc(d.obs)}"></td>
+    <td><button class="del" onclick="this.closest('tr').remove();renumber('tblMuebles')">✕</button></td>`;
+  $('#tblMuebles tbody').appendChild(tr);
+}
+/* ---------- Ficha ---------- */
+function addFicha(d={}){
+  fIx++;
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td class="ix">${$('#tblFicha tbody').children.length+1}</td>
+    <td><textarea>${esc(d.estructura)}</textarea></td>
+    <td><textarea>${esc(d.tableros)}</textarea></td>
+    <td><textarea>${esc(d.acabado)}</textarea></td>
+    <td><textarea>${esc(d.tapizado)}</textarea></td>
+    <td><textarea>${esc(d.herrajes)}</textarea></td>
+    <td><textarea>${esc(d.armado)}</textarea></td>
+    <td><textarea>${esc(d.tolerancias)}</textarea></td>
+    <td><button class="del" onclick="this.closest('tr').remove();renumber('tblFicha')">✕</button></td>`;
+  $('#tblFicha tbody').appendChild(tr);
+}
+/* ---------- Despiece ---------- */
+function addBom(d={}){
+  bIx++;
+  const tr=document.createElement('tr');
+  tr.innerHTML=`
+    <td><input value="${esc(d.material)}"></td>
+    <td><input value="${esc(d.espec)}"></td>
+    <td><input value="${esc(d.unidad)}"></td>
+    <td class="num"><input value="${esc(d.cantMueble)}"></td>
+    <td class="num"><input class="ct" value="${esc(d.cantTotal)}" oninput="recalc()"></td>
+    <td><input value="${esc(d.proveedor)}"></td>
+    <td><select>${opts(EST_MAT,d.estadoMat||'')}</select></td>
+    <td class="money"><input class="cu" value="${esc(d.costoUnit)}" oninput="recalc()"></td>
+    <td class="money tot">0.00</td>
+    <td><button class="del" onclick="this.closest('tr').remove();recalc()">✕</button></td>`;
+  $('#tblBom tbody').appendChild(tr);
+  recalc();
+}
+function recalc(){
+  let sub=0;
+  $('#tblBom tbody').querySelectorAll('tr').forEach(tr=>{
+    const ct=parseFloat(tr.querySelector('.ct').value)||0;
+    const cu=parseFloat(tr.querySelector('.cu').value)||0;
+    const t=ct*cu; sub+=t;
+    tr.querySelector('.tot').textContent=money(t);
+  });
+  const igv=sub*0.18;
+  $('#t_sub').textContent=money(sub);
+  $('#t_igv').textContent=money(igv);
+  $('#t_total').textContent=money(sub+igv);
+}
+function renumber(id){[...document.querySelectorAll('#'+id+' tbody tr')].forEach((tr,i)=>{const c=tr.querySelector('.ix'); if(c)c.textContent=i+1;})}
+
+/* ---------- Seguimiento + QC ---------- */
+function buildSeg(data){
+  const tb=$('#tblSeg tbody'); tb.innerHTML='';
+  ETAPAS.forEach((et,i)=>{
+    const d=(data&&data[i])||{};
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="font-weight:600">${et}</td>
+      <td><input value="${esc(d.resp)}"></td>
+      <td><input type="date" value="${esc(d.fProg)}"></td>
+      <td><input type="date" value="${esc(d.fReal)}"></td>
+      <td><select>${opts(EST_SEG,d.estado||'')}</select></td>
+      <td><input value="${esc(d.obs)}"></td>`;
+    tb.appendChild(tr);
+  });
+}
+function buildQc(data){
+  const tb=$('#tblQc tbody'); tb.innerHTML='';
+  QC_PUNTOS.forEach((p,i)=>{
+    const d=(data&&data[i])||{};
+    const tr=document.createElement('tr');
+    const r=d.estado||'';
+    tr.innerHTML=`<td>${p}</td>
+      <td><div class="qc-opts">
+        <label><input type="radio" name="qc${i}" value="Conforme" ${r==='Conforme'?'checked':''}> Conforme</label>
+        <label><input type="radio" name="qc${i}" value="No conforme" ${r==='No conforme'?'checked':''}> No conf.</label>
+        <label><input type="radio" name="qc${i}" value="N/A" ${r==='N/A'?'checked':''}> N/A</label>
+      </div></td>
+      <td><input value="${esc(d.obs)}"></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+/* ---------- Recolectar estado ---------- */
+function val(id){const e=$('#'+id);return e?e.value:''}
+function collect(){
+  const muebles=[...document.querySelectorAll('#tblMuebles tbody tr')].map(tr=>{
+    const i=tr.querySelectorAll('input'),s=tr.querySelector('select');
+    return {sku:i[0].value,nombre:i[1].value,linea:s.value,cant:i[2].value,medidas:i[3].value,acabado:i[4].value,materiales:i[5].value,ref:i[6].value,obs:i[7].value};
+  });
+  const fichas=[...document.querySelectorAll('#tblFicha tbody tr')].map(tr=>{
+    const t=tr.querySelectorAll('textarea');
+    return {estructura:t[0].value,tableros:t[1].value,acabado:t[2].value,tapizado:t[3].value,herrajes:t[4].value,armado:t[5].value,tolerancias:t[6].value};
+  });
+  const bom=[...document.querySelectorAll('#tblBom tbody tr')].map(tr=>{
+    const i=tr.querySelectorAll('input'),s=tr.querySelector('select');
+    return {material:i[0].value,espec:i[1].value,unidad:i[2].value,cantMueble:i[3].value,cantTotal:tr.querySelector('.ct').value,proveedor:i[4].value,estadoMat:s.value,costoUnit:tr.querySelector('.cu').value};
+  });
+  const seg=[...document.querySelectorAll('#tblSeg tbody tr')].map(tr=>{
+    const i=tr.querySelectorAll('input'),s=tr.querySelector('select');
+    return {resp:i[0].value,fProg:i[1].value,fReal:i[2].value,estado:s.value,obs:i[3].value};
+  });
+  const qc=QC_PUNTOS.map((p,i)=>{
+    const row=document.querySelectorAll('#tblQc tbody tr')[i];
+    const sel=document.querySelector(`input[name=qc${i}]:checked`);
+    const obsVal=row.querySelector('td:last-child input').value;
+    return {estado:sel?sel.value:'',obs:obsVal};
+  });
+  return {
+    header:{op:val('f_op'),fecha:val('f_fecha'),cotiz:val('f_cotiz'),cliente:val('f_cliente'),dni:val('f_dni'),asesor:val('f_asesor'),proyecto:val('f_proyecto'),resp:val('f_resp'),direccion:val('f_direccion'),inicio:val('f_inicio'),entrega:val('f_entrega'),prioridad:val('f_prioridad'),estado:val('f_estado')},
+    muebles,fichas,bom,seg,qc,
+    inspector:val('f_inspector'),resultado:val('f_resultado'),
+    entrega:{fReal:val('f_fentrega'),transp:val('f_transp'),recibido:val('f_recibido'),dniRec:val('f_dnirec')}
+  };
+}
+
+/* ---------- Guardar / Cargar borrador ---------- */
+function saveJSON(){
+  const data=collect();
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=(data.header.op||'OP')+'_Materum.json';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Borrador guardado');
+}
+function loadJSON(ev){
+  const f=ev.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{try{applyData(JSON.parse(e.target.result));toast('Borrador cargado');}catch(err){toast('Archivo no válido')}};
+  r.readAsText(f); ev.target.value='';
+}
+function applyData(d){
+  const h=d.header||{};
+  const map={op:'f_op',fecha:'f_fecha',cotiz:'f_cotiz',cliente:'f_cliente',dni:'f_dni',asesor:'f_asesor',proyecto:'f_proyecto',resp:'f_resp',direccion:'f_direccion',inicio:'f_inicio',entrega:'f_entrega',prioridad:'f_prioridad',estado:'f_estado'};
+  Object.keys(map).forEach(k=>{if($('#'+map[k])!=null&&h[k]!=null)$('#'+map[k]).value=h[k];});
+  $('#tblMuebles tbody').innerHTML=''; (d.muebles||[]).forEach(addMueble); if(!(d.muebles||[]).length)addMueble();
+  $('#tblFicha tbody').innerHTML=''; (d.fichas||[]).forEach(addFicha); if(!(d.fichas||[]).length)addFicha();
+  $('#tblBom tbody').innerHTML=''; (d.bom||[]).forEach(addBom); if(!(d.bom||[]).length)addBom();
+  buildSeg(d.seg); buildQc(d.qc);
+  $('#f_inspector').value=d.inspector||''; $('#f_resultado').value=d.resultado||'';
+  const e=d.entrega||{}; $('#f_fentrega').value=e.fReal||''; $('#f_transp').value=e.transp||''; $('#f_recibido').value=e.recibido||''; $('#f_dnirec').value=e.dniRec||'';
+  renumber('tblMuebles'); renumber('tblFicha'); recalc();
+}
+function clearAll(){
+  if(!confirm('¿Limpiar todo el formulario?'))return;
+  document.querySelectorAll('input,textarea').forEach(e=>{if(e.type==='radio'){e.checked=false}else if(e.id!=='f_op'){e.value=''}});
+  document.querySelectorAll('select').forEach(s=>s.selectedIndex=0);
+  $('#tblMuebles tbody').innerHTML=''; $('#tblFicha tbody').innerHTML=''; $('#tblBom tbody').innerHTML='';
+  addMueble();addFicha();addBom();buildSeg();buildQc();recalc();
+  toast('Formulario limpio');
+}
+
+/* ---------- Exportar PDF ---------- */
+function tcell(v){return `<td style="border:.5px solid #c9c1b6;padding:4px 6px;font-size:9px;vertical-align:top">${esc(v)||'&nbsp;'}</td>`}
+function buildPrintHTML(d){
+  const P='#2B2622',T='#8C7B6B';
+  const muebles=d.muebles.length?d.muebles:[{}];
+  const fichas=d.fichas.length?d.fichas:[{}];
+  const bom=d.bom.length?d.bom:[{}];
+  let sub=0; bom.forEach(b=>sub+=(parseFloat(b.cantTotal)||0)*(parseFloat(b.costoUnit)||0));
+  const igv=sub*0.18;
+  const sh=t=>`<div style="background:${P};color:#fff;font:600 10px Inter,sans-serif;letter-spacing:.05em;padding:6px 10px;margin:14px 0 6px">${t}</div>`;
+  const th=a=>`<tr>${a.map(h=>`<th style="background:${T};color:#fff;font:600 8.5px Inter,sans-serif;padding:5px 6px;text-align:left;border:.5px solid ${T}">${h}</th>`).join('')}</tr>`;
+  const kv=(rows)=>`<table style="width:100%;border-collapse:collapse;font:10px Inter,sans-serif">${rows.map(r=>`<tr><td style="padding:3px 8px 3px 0;color:#938a7c;width:24%;font-size:9px;text-transform:uppercase;letter-spacing:.03em">${r[0]}</td><td style="padding:3px 0;border-bottom:.5px solid #e7e2d9">${esc(r[1])||'&nbsp;'}</td><td style="padding:3px 8px 3px 16px;color:#938a7c;width:24%;font-size:9px;text-transform:uppercase;letter-spacing:.03em">${r[2]||''}</td><td style="padding:3px 0;border-bottom:.5px solid #e7e2d9">${r[3]!=null?(esc(r[3])||'&nbsp;'):''}</td></tr>`).join('')}</table>`;
+  const h=d.header;
+  return `
+  <div style="font-family:Inter,sans-serif;color:${P};padding:30px 34px">
+    <div style="display:flex;align-items:flex-start;border-bottom:3px solid ${T};padding-bottom:14px">
+      <div style="flex:0 0 auto"><div style="font-family:'Cormorant Garamond',serif;font-weight:600;font-size:30px;letter-spacing:.1em;line-height:.9">MATERUM</div><div style="font-size:8px;color:${T};letter-spacing:.2em;text-transform:uppercase;margin-top:5px">Mobiliario a medida</div></div>
+      <div style="flex:1;text-align:center"><div style="font-weight:600;font-size:14px;letter-spacing:.03em">ORDEN DE PRODUCCIÓN Y FABRICACIÓN</div><div style="font-size:9px;color:#938a7c;margin-top:3px">Documento interno de producción</div></div>
+      <div style="flex:0 0 auto;text-align:center"><div style="background:${T};color:#fff;font-size:8px;letter-spacing:.12em;padding:3px 10px;text-transform:uppercase">N° de orden</div><div style="border:1px solid #d8d2c8;background:#ede9e3;font-weight:600;font-size:13px;padding:5px 14px">${esc(h.op)||'—'}</div></div>
+    </div>
+    ${sh('1 · DATOS GENERALES')}
+    ${kv([
+      ['Fecha de emisión',h.fecha,'Cliente',h.cliente],
+      ['Cotización / Pedido',h.cotiz,'DNI / RUC',h.dni],
+      ['Asesor de venta',h.asesor,'Proyecto / Ambiente',h.proyecto],
+      ['Resp. de producción',h.resp,'Dirección de entrega',h.direccion],
+      ['Fecha inicio prog.',h.inicio,'Fecha entrega comprom.',h.entrega],
+      ['Prioridad',h.prioridad,'Estado general',h.estado],
+    ])}
+    ${sh('2 · DETALLE DE MUEBLES A FABRICAR')}
+    <table style="width:100%;border-collapse:collapse">${th(['#','Código','Nombre y descripción','Línea','Cant.','Medidas (cm)','Acabado','Materiales','Ref.','Obs.'])}
+      ${muebles.map((m,i)=>`<tr>${tcell(String(i+1))}${tcell(m.sku)}${tcell(m.nombre)}${tcell(m.linea)}${tcell(m.cant)}${tcell(m.medidas)}${tcell(m.acabado)}${tcell(m.materiales)}${tcell(m.ref)}${tcell(m.obs)}</tr>`).join('')}
+    </table>
+    ${sh('3 · FICHA TÉCNICA DE FABRICACIÓN')}
+    <table style="width:100%;border-collapse:collapse">${th(['#','Estructura','Tableros','Acabado','Tapizado','Herrajes','Armado','Tolerancias'])}
+      ${fichas.map((f,i)=>`<tr>${tcell(String(i+1))}${tcell(f.estructura)}${tcell(f.tableros)}${tcell(f.acabado)}${tcell(f.tapizado)}${tcell(f.herrajes)}${tcell(f.armado)}${tcell(f.tolerancias)}</tr>`).join('')}
+    </table>
+    ${sh('4 · DESPIECE DE MATERIALES E INSUMOS · Requisición de compra')}
+    <table style="width:100%;border-collapse:collapse">${th(['Material / Insumo','Especificación','Unid.','Cant./mueble','Cant. total','Proveedor','Estado','Costo unit. (S/)','Costo total (S/)'])}
+      ${bom.map(b=>{const ct=parseFloat(b.cantTotal)||0,cu=parseFloat(b.costoUnit)||0;return `<tr>${tcell(b.material)}${tcell(b.espec)}${tcell(b.unidad)}${tcell(b.cantMueble)}${tcell(b.cantTotal)}${tcell(b.proveedor)}${tcell(b.estadoMat)}<td style="border:.5px solid #c9c1b6;padding:4px 6px;font-size:9px;text-align:right">${b.costoUnit?money(cu):'&nbsp;'}</td><td style="border:.5px solid #c9c1b6;padding:4px 6px;font-size:9px;text-align:right">${ct*cu?money(ct*cu):'&nbsp;'}</td></tr>`}).join('')}
+    </table>
+    <table style="width:100%;border-collapse:collapse;margin-top:6px">
+      <tr><td style="text-align:right;padding:4px 8px;font-size:9.5px;font-weight:600">Subtotal materiales (S/)</td><td style="width:110px;text-align:right;padding:4px 8px;font-size:9.5px;font-weight:600;border:.5px solid #c9c1b6">${money(sub)}</td></tr>
+      <tr><td style="text-align:right;padding:4px 8px;font-size:9.5px;color:#938a7c">IGV 18% (S/)</td><td style="text-align:right;padding:4px 8px;font-size:9.5px;color:#938a7c;border:.5px solid #c9c1b6">${money(igv)}</td></tr>
+      <tr><td style="text-align:right;padding:6px 8px;font-size:10px;font-weight:600;color:#fff;background:${P}">COSTO TOTAL DE MATERIALES (S/)</td><td style="text-align:right;padding:6px 8px;font-size:10px;font-weight:600;color:#fff;background:${P}">${money(sub+igv)}</td></tr>
+    </table>
+    ${sh('5 · SEGUIMIENTO DE PRODUCCIÓN')}
+    <table style="width:100%;border-collapse:collapse">${th(['Etapa','Responsable','Fecha programada','Fecha real','Estado','Observaciones'])}
+      ${ETAPAS.map((et,i)=>{const s=d.seg[i]||{};return `<tr><td style="border:.5px solid #c9c1b6;padding:4px 6px;font-size:9px;font-weight:600">${et}</td>${tcell(s.resp)}${tcell(s.fProg)}${tcell(s.fReal)}${tcell(s.estado)}${tcell(s.obs)}</tr>`}).join('')}
+    </table>
+    ${sh('6 · CONTROL DE CALIDAD')}
+    <table style="width:100%;border-collapse:collapse">${th(['Punto de inspección','Resultado','Observaciones'])}
+      ${QC_PUNTOS.map((p,i)=>{const q=d.qc[i]||{};return `<tr><td style="border:.5px solid #c9c1b6;padding:4px 6px;font-size:9px">${p}</td>${tcell(q.estado)}${tcell(q.obs)}</tr>`}).join('')}
+    </table>
+    <div style="margin-top:6px;font-size:9.5px">${kv([['Inspeccionado por / Fecha',d.inspector,'Resultado final',d.resultado]])}</div>
+    ${sh('7 · ENTREGA Y FIRMAS')}
+    ${kv([['Fecha entrega real',d.entrega.fReal,'Transportista / resp.',d.entrega.transp],['Recibido por',d.entrega.recibido,'DNI receptor',d.entrega.dniRec]])}
+    <table style="width:100%;margin-top:34px"><tr>
+      <td style="text-align:center;width:33%"><div style="border-top:1px solid ${P};margin:0 14px"></div><div style="font-size:9px;color:#938a7c;padding-top:5px">Elaborado por</div></td>
+      <td style="text-align:center;width:33%"><div style="border-top:1px solid ${P};margin:0 14px"></div><div style="font-size:9px;color:#938a7c;padding-top:5px">Revisado por (Jefe Prod. / QC)</div></td>
+      <td style="text-align:center;width:33%"><div style="border-top:1px solid ${P};margin:0 14px"></div><div style="font-size:9px;color:#938a7c;padding-top:5px">Autorizado por</div></td>
+    </tr></table>
+    <div style="text-align:center;color:#938a7c;font-size:8.5px;font-style:italic;margin-top:22px;border-top:.5px solid #e7e2d9;padding-top:10px">MATERUM · FL Design Factory E.I.R.L. · Lima, Perú · Documento interno de producción — confidencial</div>
+  </div>`;
+}
+async function exportPDF(){
+  const btn=$('#pdfBtn'); const old=btn.textContent; btn.textContent='Generando…'; btn.disabled=true;
+  try{
+    const d=collect();
+    const area=$('#printArea'); area.innerHTML=buildPrintHTML(d);
+    if(document.fonts&&document.fonts.ready){try{await document.fonts.ready}catch(e){}}
+    await new Promise(r=>setTimeout(r,120));
+    await html2pdf().set({
+      margin:[8,8,8,8],
+      filename:(d.header.op||'OP')+'_Materum.pdf',
+      image:{type:'jpeg',quality:0.98},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+      pagebreak:{mode:['css','legacy'],avoid:['tr']}
+    }).from(area.firstElementChild).save();
+    toast('PDF exportado');
+  }catch(err){console.error(err);toast('No se pudo generar el PDF')}
+  finally{btn.textContent=old; btn.disabled=false; $('#printArea').innerHTML='';}
+}
+
+let tt;
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2200);}
+
+/* ---------- Init ---------- */
+addMueble(); addFicha(); addBom(); buildSeg(); buildQc();
+$('#f_fecha').value=new Date().toISOString().slice(0,10);
+</script>
+</body>
+</html>
