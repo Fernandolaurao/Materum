@@ -49,6 +49,7 @@
   .doc-head .titlecol{flex:1; text-align:center; min-width:220px}
   .doc-head .dt{font-weight:600; font-size:17px; letter-spacing:.04em}
   .doc-head .dt-sub{font-size:11px; color:var(--muted); margin-top:4px}
+  .opwrap{flex:0 0 auto; display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end}
   .opbox{flex:0 0 auto; text-align:center}
   .opbox label{display:block; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:#fff; background:var(--taupe); padding:4px 10px; border-radius:4px 4px 0 0}
   .opbox input{width:120px; text-align:center; font-weight:600; font-size:16px; color:var(--ink); border:1px solid var(--line); border-top:none; border-radius:0 0 4px 4px; padding:7px 4px; background:var(--greige)}
@@ -142,9 +143,15 @@
         <div class="dt">ORDEN DE PRODUCCIÓN Y FABRICACIÓN</div>
         <div class="dt-sub">Documento interno de producción</div>
       </div>
-      <div class="opbox">
-        <label>N° de orden</label>
-        <input id="f_op" value="OP-0001">
+      <div class="opwrap">
+        <div class="opbox">
+          <label>N° de orden</label>
+          <input id="f_op" value="OP-0001">
+        </div>
+        <div class="opbox">
+          <label>Cotización / Pedido</label>
+          <input id="f_cotiz" placeholder="N° 0000 Rev. 0">
+        </div>
       </div>
     </div>
 
@@ -154,10 +161,8 @@
       <div class="grid2">
         <div class="fld"><label>Fecha de emisión</label><input type="date" id="f_fecha"></div>
         <div class="fld"><label>Cliente</label><input id="f_cliente" placeholder="Nombre del cliente"></div>
-        <div class="fld"><label>Cotización / Pedido vinculado</label><input id="f_cotiz" placeholder="N° 0000 Rev. 0"></div>
         <div class="fld"><label>DNI / RUC</label><input id="f_dni"></div>
         <div class="fld"><label>Asesor de venta</label><input id="f_asesor"></div>
-        <div class="fld"><label>Proyecto / Ambiente</label><input id="f_proyecto"></div>
         <div class="fld"><label>Responsable de producción</label><input id="f_resp"></div>
         <div class="fld"><label>Dirección de entrega</label><input id="f_direccion"></div>
         <div class="fld"><label>Fecha inicio programada</label><input type="date" id="f_inicio"></div>
@@ -304,7 +309,7 @@ function collect(){
   });
   const fotos=[...document.querySelectorAll('#fotoGrid .foto-card')].map(c=>({src:c.dataset.src,caption:c.querySelector('.cap').value}));
   return {
-    header:{op:val('f_op'),fecha:val('f_fecha'),cotiz:val('f_cotiz'),cliente:val('f_cliente'),dni:val('f_dni'),asesor:val('f_asesor'),proyecto:val('f_proyecto'),resp:val('f_resp'),direccion:val('f_direccion'),inicio:val('f_inicio'),entrega:val('f_entrega'),freal:val('f_freal'),prioridad:val('f_prioridad')},
+    header:{op:val('f_op'),fecha:val('f_fecha'),cotiz:val('f_cotiz'),cliente:val('f_cliente'),dni:val('f_dni'),asesor:val('f_asesor'),resp:val('f_resp'),direccion:val('f_direccion'),inicio:val('f_inicio'),entrega:val('f_entrega'),freal:val('f_freal'),prioridad:val('f_prioridad')},
     muebles,fichas,fotos
   };
 }
@@ -327,7 +332,7 @@ function loadJSON(ev){
 }
 function applyData(d){
   const h=d.header||{};
-  const map={op:'f_op',fecha:'f_fecha',cotiz:'f_cotiz',cliente:'f_cliente',dni:'f_dni',asesor:'f_asesor',proyecto:'f_proyecto',resp:'f_resp',direccion:'f_direccion',inicio:'f_inicio',entrega:'f_entrega',freal:'f_freal',prioridad:'f_prioridad'};
+  const map={op:'f_op',fecha:'f_fecha',cotiz:'f_cotiz',cliente:'f_cliente',dni:'f_dni',asesor:'f_asesor',resp:'f_resp',direccion:'f_direccion',inicio:'f_inicio',entrega:'f_entrega',freal:'f_freal',prioridad:'f_prioridad'};
   Object.keys(map).forEach(k=>{if($('#'+map[k])!=null&&h[k]!=null)$('#'+map[k]).value=h[k];});
   $('#tblMuebles tbody').innerHTML=''; (d.muebles||[]).forEach(addMueble); if(!(d.muebles||[]).length)addMueble();
   $('#tblFicha tbody').innerHTML=''; (d.fichas||[]).forEach(addFicha); if(!(d.fichas||[]).length)addFicha();
@@ -345,7 +350,37 @@ function clearAll(){
 
 /* ---------- Exportar PDF ---------- */
 function tcell(v){return `<td style="border:.5px solid #c9c1b6;padding:4px 6px;font-size:9px;vertical-align:top">${esc(v)||'&nbsp;'}</td>`}
-function buildPrintHTML(d){
+
+function measureImg(src){
+  return new Promise(res=>{
+    const im=new Image();
+    im.onload=()=>res({w:im.naturalWidth||0,h:im.naturalHeight||0});
+    im.onerror=()=>res({w:0,h:0});
+    im.src=src;
+  });
+}
+async function buildFotosPages(fotos){
+  if(!fotos||!fotos.length) return '';
+  const P='#2B2622';
+  const maxW=700, maxH=920; // caja útil dentro de una A4 (deja margen para encabezado y descripción)
+  let html='';
+  for(let i=0;i<fotos.length;i++){
+    const f=fotos[i];
+    const {w,h}=await measureImg(f.src);
+    let dw=maxW, dh=maxH;
+    if(w&&h){ const s=Math.min(maxW/w, maxH/h); dw=Math.round(w*s); dh=Math.round(h*s); }
+    // Salto de página explícito ANTES de cada foto: garantiza una por hoja
+    html+=`<div class="html2pdf__page-break"></div>
+    <div class="foto-page" style="text-align:center;padding-top:4px">
+      <div style="background:${P};color:#fff;font:600 10px Inter,sans-serif;letter-spacing:.05em;padding:6px 10px;margin:0 0 16px;text-align:left">4 · REGISTRO FOTOGRÁFICO${fotos.length>1?` &nbsp;·&nbsp; ${i+1} / ${fotos.length}`:''}</div>
+      <img src="${f.src}" width="${dw}" height="${dh}" style="display:inline-block;border:1px solid #d8d2c8;border-radius:4px">
+      <div style="font:13px Inter,sans-serif;color:#736353;margin-top:12px">${esc(f.caption)||''}</div>
+    </div>`;
+  }
+  return html;
+}
+
+function buildPrintHTML(d, fotosHtml){
   const P='#2B2622',T='#8C7B6B';
   const muebles=d.muebles.length?d.muebles:[{}];
   const fichas=d.fichas.length?d.fichas:[{}];
@@ -353,34 +388,23 @@ function buildPrintHTML(d){
   const th=a=>`<tr>${a.map(h=>`<th style="background:${T};color:#fff;font:600 8.5px Inter,sans-serif;padding:5px 6px;text-align:left;border:.5px solid ${T}">${h}</th>`).join('')}</tr>`;
   const kv=rows=>`<table style="width:100%;border-collapse:collapse;font:10px Inter,sans-serif">${rows.map(r=>`<tr><td style="padding:3px 8px 3px 0;color:#938a7c;width:24%;font-size:9px;text-transform:uppercase;letter-spacing:.03em">${r[0]}</td><td style="padding:3px 0;border-bottom:.5px solid #e7e2d9">${esc(r[1])||'&nbsp;'}</td><td style="padding:3px 8px 3px 16px;color:#938a7c;width:24%;font-size:9px;text-transform:uppercase;letter-spacing:.03em">${r[2]||''}</td><td style="padding:3px 0;border-bottom:.5px solid #e7e2d9">${r[3]!=null?(esc(r[3])||'&nbsp;'):''}</td></tr>`).join('')}</table>`;
   const h=d.header;
-  let fotosHtml='';
-  if(d.fotos&&d.fotos.length){
-    fotosHtml=sh('4 · REGISTRO FOTOGRÁFICO')+'<table style="width:100%;border-collapse:collapse"><tr>';
-    d.fotos.forEach((f,i)=>{
-      fotosHtml+=`<td style="width:50%;padding:6px;vertical-align:top">
-        <div style="height:58mm;display:flex;align-items:center;justify-content:center;background:#f4f1ec;border:1px solid #d8d2c8;border-radius:4px;overflow:hidden">
-          <img src="${f.src}" style="max-width:100%;max-height:58mm;object-fit:contain"></div>
-        <div style="font-size:9px;color:#736353;padding-top:4px">${esc(f.caption)||'&nbsp;'}</div></td>`;
-      if(i%2===1 && i<d.fotos.length-1) fotosHtml+='</tr><tr>';
-    });
-    if(d.fotos.length%2===1) fotosHtml+='<td style="width:50%"></td>';
-    fotosHtml+='</tr></table>';
-  }
   return `
   <div style="font-family:Inter,sans-serif;color:${P};padding:30px 34px">
     <div style="display:flex;align-items:flex-start;border-bottom:3px solid ${T};padding-bottom:14px">
       <div style="flex:0 0 auto"><div style="font-family:'Cormorant Garamond',serif;font-weight:600;font-size:30px;letter-spacing:.1em;line-height:.9">MATERUM</div><div style="font-size:8px;color:${T};letter-spacing:.2em;text-transform:uppercase;margin-top:5px">Mobiliario a medida</div></div>
       <div style="flex:1;text-align:center"><div style="font-weight:600;font-size:14px;letter-spacing:.03em">ORDEN DE PRODUCCIÓN Y FABRICACIÓN</div><div style="font-size:9px;color:#938a7c;margin-top:3px">Documento interno de producción</div></div>
-      <div style="flex:0 0 auto;text-align:center"><div style="background:${T};color:#fff;font-size:8px;letter-spacing:.12em;padding:3px 10px;text-transform:uppercase">N° de orden</div><div style="border:1px solid #d8d2c8;background:#ede9e3;font-weight:600;font-size:13px;padding:5px 14px">${esc(h.op)||'—'}</div></div>
+      <div style="flex:0 0 auto;display:flex;gap:8px">
+        <div style="text-align:center"><div style="background:${T};color:#fff;font-size:8px;letter-spacing:.12em;padding:3px 10px;text-transform:uppercase">N° de orden</div><div style="border:1px solid #d8d2c8;background:#ede9e3;font-weight:600;font-size:13px;padding:5px 14px">${esc(h.op)||'—'}</div></div>
+        <div style="text-align:center"><div style="background:${T};color:#fff;font-size:8px;letter-spacing:.12em;padding:3px 10px;text-transform:uppercase">Cotización / Pedido</div><div style="border:1px solid #d8d2c8;background:#ede9e3;font-weight:600;font-size:13px;padding:5px 14px">${esc(h.cotiz)||'—'}</div></div>
+      </div>
     </div>
     ${sh('1 · DATOS GENERALES')}
     ${kv([
       ['Fecha de emisión',h.fecha,'Cliente',h.cliente],
-      ['Cotización / Pedido',h.cotiz,'DNI / RUC',h.dni],
-      ['Asesor de venta',h.asesor,'Proyecto / Ambiente',h.proyecto],
+      ['DNI / RUC',h.dni,'Asesor de venta',h.asesor],
       ['Resp. de producción',h.resp,'Dirección de entrega',h.direccion],
       ['Fecha inicio prog.',h.inicio,'Fecha entrega comprom.',h.entrega],
-      ['Prioridad',h.prioridad,'Fecha de entrega real',h.freal],
+      ['Fecha de entrega real',h.freal,'Prioridad',h.prioridad],
     ])}
     ${sh('2 · DETALLE DE MUEBLES A FABRICAR')}
     <table style="width:100%;border-collapse:collapse">${th(['#','Código','Nombre y descripción','Línea','Cant.','Medidas (cm)','Obs.'])}
@@ -390,24 +414,28 @@ function buildPrintHTML(d){
     <table style="width:100%;border-collapse:collapse">${th(['#','Estructura','Tableros','Acabado','Tapizado','Herrajes','Armado','Tolerancias'])}
       ${fichas.map((f,i)=>`<tr>${tcell(String(i+1))}${tcell(f.estructura)}${tcell(f.tableros)}${tcell(f.acabado)}${tcell(f.tapizado)}${tcell(f.herrajes)}${tcell(f.armado)}${tcell(f.tolerancias)}</tr>`).join('')}
     </table>
-    ${fotosHtml}
     <div style="text-align:center;color:#938a7c;font-size:8.5px;font-style:italic;margin-top:22px;border-top:.5px solid #e7e2d9;padding-top:10px">MATERUM · FL Design Factory E.I.R.L. · Lima, Perú · Documento interno de producción — confidencial</div>
+    ${fotosHtml||''}
   </div>`;
 }
 async function exportPDF(){
   const btn=$('#pdfBtn'); const old=btn.textContent; btn.textContent='Generando…'; btn.disabled=true;
   try{
     const d=collect();
-    const area=$('#printArea'); area.innerHTML=buildPrintHTML(d);
+    const fotosHtml=await buildFotosPages(d.fotos);
+    const area=$('#printArea'); area.innerHTML=buildPrintHTML(d, fotosHtml);
     if(document.fonts&&document.fonts.ready){try{await document.fonts.ready}catch(e){}}
-    await new Promise(r=>setTimeout(r,150));
+    // Esperar a que TODAS las imágenes carguen antes de capturar
+    const imgs=[...area.querySelectorAll('img')];
+    await Promise.all(imgs.map(im=> (im.complete && im.naturalWidth)?Promise.resolve():new Promise(r=>{im.onload=r; im.onerror=r;})));
+    await new Promise(r=>setTimeout(r,120));
     await html2pdf().set({
       margin:[8,8,8,8],
       filename:(d.header.op||'OP')+'_Materum.pdf',
       image:{type:'jpeg',quality:0.98},
-      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',imageTimeout:0},
       jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
-      pagebreak:{mode:['css','legacy'],avoid:['tr']}
+      pagebreak:{mode:['legacy','css'],avoid:['tr']}
     }).from(area.firstElementChild).save();
     toast('PDF exportado');
   }catch(err){console.error(err);toast('No se pudo generar el PDF')}
